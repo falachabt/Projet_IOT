@@ -6,7 +6,7 @@ import time
 # Configuration
 BROKER = "10.66.108.235"
 PORT   = 1883
-TOPIC  = "esp8266/ultrason/distance"
+TOPIC  = "esp8266/capteurs/distance"
 
 # Si authentification nécessaire → décommenter et remplir
 # USERNAME = "ton_user"

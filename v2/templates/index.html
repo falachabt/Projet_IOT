@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bottle Checker V2 — Contrôle Qualité</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --border: #2a2d3a;
+            --text: #e4e4e7;
+            --muted: #71717a;
+            --green: #22c55e;
+            --red: #ef4444;
+            --orange: #f97316;
+            --blue: #3b82f6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        header .badge {
+            background: var(--blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .video-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .video-panel img {
+            width: 100%;
+            height: auto;
+            display: block;
+            min-height: 400px;
+            object-fit: contain;
+            background: #000;
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+        }
+
+        #btn-analyze {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: var(--blue);
+            color: white;
+            transition: all 0.2s;
+            letter-spacing: 0.02em;
+        }
+
+        #btn-analyze:hover { background: #2563eb; transform: translateY(-1px); }
+        #btn-analyze:active { transform: translateY(0); }
+        #btn-analyze:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
+
+        .status-display {
+            text-align: center;
+            padding: 24px 0;
+        }
+
+        .status-display .status-text {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .status-display .status-text.ok { color: var(--green); }
+        .status-display .status-text.nok { color: var(--red); }
+        .status-display .status-text.waiting { color: var(--muted); }
+
+        .detail-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .detail-item .label {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .detail-item .value {
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .value.detected { background: rgba(34,197,94,0.15); color: var(--green); }
+        .value.missing  { background: rgba(239,68,68,0.15); color: var(--red); }
+        .value.unknown  { background: rgba(113,113,122,0.15); color: var(--muted); }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .log-area {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .log-area .entry { padding: 2px 0; }
+        .log-area .entry.ok { color: var(--green); }
+        .log-area .entry.nok { color: var(--red); }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🔍 Bottle Checker V2</h1>
+        <span class="badge" id="camera-badge">Caméra connectée</span>
+    </header>
+
+    <div class="container">
+        <!-- Vidéo -->
+        <div class="video-panel">
+            <img id="video-stream" src="/video_feed" alt="Flux caméra">
+        </div>
+
+        <!-- Panneau latéral -->
+        <div class="side-panel">
+            <!-- Bouton analyse -->
+            <button id="btn-analyze" onclick="triggerAnalysis()">
+                📸 ANALYSER
+            </button>
+
+            <!-- Statut global -->
+            <div class="card">
+                <h2>Statut</h2>
+                <div class="status-display">
+                    <div class="status-text waiting" id="status-text">EN ATTENTE</div>
+                </div>
+            </div>
+
+            <!-- Détails -->
+            <div class="card">
+                <h2>Détail de l'analyse</h2>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="label">🍾 Bouteille</span>
+                        <span class="value unknown" id="val-bottle">—</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🔴 Bouchon</span>
+                        <span class="value unknown" id="val-cap">—</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">🏷️ Étiquette</span>
+                        <span class="value unknown" id="val-label">—</span>
+                    </div>
+                </div>
+                <div class="info-row" style="margin-top:12px">
+                    <span id="info-time">—</span>
+                    <span id="info-elapsed">—</span>
+                </div>
+            </div>
+
+            <!-- Journal -->
+            <div class="card">
+                <h2>Journal</h2>
+                <div class="log-area" id="log-area">
+                    <div class="entry">Prêt. Cliquez sur ANALYSER.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const statusText = document.getElementById('status-text');
+        const valBottle  = document.getElementById('val-bottle');
+        const valCap     = document.getElementById('val-cap');
+        const valLabel   = document.getElementById('val-label');
+        const infoTime   = document.getElementById('info-time');
+        const infoElapsed = document.getElementById('info-elapsed');
+        const logArea    = document.getElementById('log-area');
+
+        function addLog(msg, cls = '') {
+            const div = document.createElement('div');
+            div.className = 'entry ' + cls;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logArea.prepend(div);
+        }
+
+        function setDetail(el, detected, conf) {
+            if (detected) {
+                el.textContent = `OK (${(conf * 100).toFixed(0)}%)`;
+                el.className = 'value detected';
+            } else {
+                el.textContent = 'ABSENT';
+                el.className = 'value missing';
+            }
+        }
+
+        async function triggerAnalysis() {
+            btnAnalyze.disabled = true;
+            btnAnalyze.textContent = '⏳ Analyse en cours...';
+            addLog('Analyse déclenchée...');
+
+            try {
+                const resp = await fetch('/analyze', { method: 'POST' });
+                const data = await resp.json();
+
+                if (data.error) {
+                    addLog('Erreur : ' + data.error, 'nok');
+                    return;
+                }
+
+                // Statut
+                const isOk = data.status === 'OK';
+                statusText.textContent = data.status;
+                statusText.className = 'status-text ' + (isOk ? 'ok' : 'nok');
+
+                // Détails
+                setDetail(valBottle, data.bottle.detected, data.bottle.confidence);
+                setDetail(valCap, data.cap.detected, data.cap.confidence);
+                setDetail(valLabel, data.label.detected, data.label.confidence);
+
+                // Info
+                infoTime.textContent = data.timestamp || '';
+                infoElapsed.textContent = data.elapsed_ms ? data.elapsed_ms + ' ms' : '';
+
+                addLog(`Résultat : ${data.status}`, isOk ? 'ok' : 'nok');
+
+                // Rafraîchir le flux vidéo pour montrer l'annotation
+                const stream = document.getElementById('video-stream');
+                stream.src = '/video_feed?' + Date.now();
+
+            } catch (err) {
+                addLog('Erreur réseau : ' + err.message, 'nok');
+            } finally {
+                btnAnalyze.disabled = false;
+                btnAnalyze.textContent = '📸 ANALYSER';
+            }
+        }
+
+        // Raccourci clavier ESPACE
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !btnAnalyze.disabled) {
+                e.preventDefault();
+                triggerAnalysis();
+            }
+        });
+    </script>
+</body>
+</html>

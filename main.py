@@ -25,10 +25,10 @@ class BottleCheckerApp:
         self.root.geometry("1200x800")
 
         # ─── CONFIG MQTT ───────────────────────────────────────────────
-        self.MQTT_BROKER = "10.66.108.235"
+        self.MQTT_BROKER = "172.20.10.3"
         self.MQTT_PORT   = 1883
-        self.MQTT_TOPIC_TRIGGER    = "esp8266/ultrason/distance"     # topic qui déclenche
-        self.MQTT_TOPIC_RESPONSE   = "esp8266/bouteille/etat"        # ← topic de réponse (à adapter)
+        self.MQTT_TOPIC_TRIGGER    = "esp8266/capteur/distance"     # topic qui déclenche
+        self.MQTT_TOPIC_RESPONSE   = "rapsberry/camera/resultat"        # ← topic de réponse (à adapter)
 
         # ─── CONFIG YOLO ───────────────────────────────────────────────
         self.YOLO_MODEL  = "yolo11n.pt"           # ← À remplacer par ton modèle custom !!!
