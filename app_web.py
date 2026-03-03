@@ -13,11 +13,16 @@ import threading
 import time
 
 import cv2
+import paho.mqtt.client as mqtt
 from flask import Flask, Response, jsonify, render_template, send_from_directory
 
-from v2.camera import Camera
-from v2.config import OUTPUT_DIR, WEB_HOST, WEB_PORT, WEB_DEBUG
-from v2.detector import BottleDetector
+from camera import Camera
+from config import (
+    OUTPUT_DIR, WEB_HOST, WEB_PORT, WEB_DEBUG,
+    MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE, MQTT_USERNAME, MQTT_PASSWORD,
+    MQTT_TOPIC_TRIGGER, MQTT_TOPIC_RESULT,
+)
+from detector import BottleDetector
 
 # ─────────────────────────────────────────────────────────────
 app = Flask(
@@ -36,6 +41,65 @@ _last_result: dict | None = None
 _last_annotated_frame = None  # numpy BGR
 _current_frame = None          # frame live courante
 _analyzing = False
+_mqtt_connected = False
+
+
+# ─────────────────────────────────────────────────────────────
+#  MQTT TRIGGER
+# ─────────────────────────────────────────────────────────────
+def _mqtt_on_connect(client, userdata, flags, rc, properties=None):
+    global _mqtt_connected
+    if rc == 0:
+        _mqtt_connected = True
+        client.subscribe(MQTT_TOPIC_TRIGGER)
+        print(f"[MQTT] Connecté — écoute sur '{MQTT_TOPIC_TRIGGER}'")
+    else:
+        print(f"[MQTT] Échec connexion (rc={rc})")
+
+
+def _mqtt_on_message(client, userdata, msg):
+    """Déclenche une analyse dès réception d'un message trigger."""
+    global _last_result, _last_annotated_frame, _analyzing
+    raw = msg.payload.decode(errors='ignore')
+    # Filtrer : ne déclencher que si objet_detecte est true
+    try:
+        data = json.loads(raw)
+        if not data.get("objet_detecte", False):
+            return
+    except (json.JSONDecodeError, AttributeError):
+        pass  # payload non-JSON → on laisse passer
+    print(f"[MQTT] Trigger reçu : {raw}")
+
+    if _analyzing or _current_frame is None:
+        return
+
+    _analyzing = True
+    try:
+        frame = _current_frame.copy()
+        result, annotated = detector.analyze(frame)
+        with _lock:
+            _last_result = result
+            _last_annotated_frame = annotated
+        client.publish(MQTT_TOPIC_RESULT, json.dumps(result))
+        print(f"[MQTT] Résultat publié → {result['status']}")
+    except Exception as e:
+        print(f"[MQTT] Erreur analyse : {e}")
+    finally:
+        _analyzing = False
+
+
+def _start_mqtt():
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = _mqtt_on_connect
+    client.on_message = _mqtt_on_message
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    try:
+        client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE)
+        client.loop_start()
+        print(f"[MQTT] Connexion à {MQTT_BROKER}:{MQTT_PORT}…")
+    except Exception as e:
+        print(f"[MQTT] Impossible de se connecter : {e}")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -87,6 +151,12 @@ def last_result():
         return jsonify(_last_result)
 
 
+@app.route("/mqtt_status")
+def mqtt_status():
+    """Statut de la connexion MQTT."""
+    return jsonify({"connected": _mqtt_connected, "broker": MQTT_BROKER, "topic_trigger": MQTT_TOPIC_TRIGGER})
+
+
 @app.route("/output/<path:filename>")
 def serve_output(filename):
     return send_from_directory(OUTPUT_DIR, filename)
@@ -133,7 +203,10 @@ def main():
     detector = BottleDetector()
     camera = Camera()
 
-    print(f"\n→ Ouvrez http://localhost:{WEB_PORT} dans votre navigateur\n")
+    _start_mqtt()
+
+    print(f"\n→ Ouvrez http://localhost:{WEB_PORT} dans votre navigateur")
+    print(f"→ MQTT trigger sur '{MQTT_TOPIC_TRIGGER}' ({MQTT_BROKER}:{MQTT_PORT})\n")
     app.run(host=WEB_HOST, port=WEB_PORT, debug=WEB_DEBUG, threaded=True)
 
 

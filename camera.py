@@ -15,7 +15,7 @@ try:
 except ImportError:
     _PICAMERA_AVAILABLE = False
 
-from v2.config import CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT
+from config import CAMERA_INDEX, CAMERA_WIDTH, CAMERA_HEIGHT
 
 
 class Camera:

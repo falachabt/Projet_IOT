@@ -24,7 +24,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-from v2.config import (
+from config import (
     YOLO_MODEL_PATH,
     YOLO_CONFIDENCE,
     YOLO_BOTTLE_CLASS,

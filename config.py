@@ -17,7 +17,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ──────────────────────────────────────────────────────────────
 # Le modèle préentraîné YOLO (yolo11n.pt par défaut)
 # Les classes "bottle" sont détectées nativement par les modèles COCO
-YOLO_MODEL_PATH = os.path.join(BASE_DIR, "..", "yolo11n.pt")
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, "yolo11n.pt")
 YOLO_CONFIDENCE = 0.40        # Seuil de confiance YOLO pour la détection bouteille
 YOLO_BOTTLE_CLASS = "bottle"  # Nom de la classe bouteille dans COCO
 
@@ -56,8 +56,8 @@ MQTT_USERNAME = None           # Mettre le username si auth requise
 MQTT_PASSWORD = None
 
 # Topics
-MQTT_TOPIC_TRIGGER = "iot/bottle/trigger"    # Arduino → Rasp : déclenche l'analyse
-MQTT_TOPIC_RESULT = "iot/bottle/result"      # Rasp → Arduino : résultat JSON
+MQTT_TOPIC_TRIGGER = "esp8266/capteurs/distance"    # Arduino → Rasp : déclenche l'analyse
+MQTT_TOPIC_RESULT = "rapsberry/camera/resultat"      # Rasp → Arduino : résultat JSON
 
 # ──────────────────────────────────────────────────────────────
 # INTERFACE WEB (Flask)

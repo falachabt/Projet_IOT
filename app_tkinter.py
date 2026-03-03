@@ -8,6 +8,7 @@ Lancement :
 from __future__ import annotations
 
 import os
+import json
 import threading
 import time
 import tkinter as tk
@@ -18,9 +19,15 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
-from v2.camera import Camera
-from v2.config import OUTPUT_DIR
-from v2.detector import BottleDetector
+import paho.mqtt.client as mqtt
+
+from camera import Camera
+from config import (
+    OUTPUT_DIR,
+    MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE, MQTT_USERNAME, MQTT_PASSWORD,
+    MQTT_TOPIC_TRIGGER, MQTT_TOPIC_RESULT,
+)
+from detector import BottleDetector
 
 
 class BottleCheckerTkApp:
@@ -41,9 +48,11 @@ class BottleCheckerTkApp:
         self.analysis_count = 0
         self.ok_count = 0
         self.nok_count = 0
+        self._mqtt_client: mqtt.Client | None = None
 
         self._build_ui()
         self._init_backend()
+        self._start_mqtt()
         self._start_video_loop()
 
     # ═════════════════════════════════════════════════════════
@@ -117,6 +126,10 @@ class BottleCheckerTkApp:
         # Caméra badge
         self.lbl_camera = ttk.Label(right, text="Caméra : initialisation…", foreground="orange")
         self.lbl_camera.pack(anchor="w")
+
+        # MQTT badge
+        self.lbl_mqtt = ttk.Label(right, text="MQTT : connexion…", foreground="orange")
+        self.lbl_mqtt.pack(anchor="w")
 
         # Log
         ttk.Label(right, text="Journal", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(10, 2))
@@ -204,6 +217,7 @@ class BottleCheckerTkApp:
 
             # Mise à jour UI
             self.root.after(0, self._update_results, result)
+            self._mqtt_publish_result(result)
 
         except Exception as e:
             self._log(f"Erreur analyse : {e}")
@@ -249,9 +263,62 @@ class BottleCheckerTkApp:
 
         self._log(f"Résultat → {status}")
 
+    # ── MQTT ─────────────────────────────────────────────────
+    def _start_mqtt(self):
+        """Démarre le client MQTT en background."""
+        def on_connect(client, userdata, flags, rc, properties=None):
+            if rc == 0:
+                client.subscribe(MQTT_TOPIC_TRIGGER)
+                self.root.after(0, self.lbl_mqtt.config,
+                                {"text": f"MQTT : {MQTT_BROKER} ✓", "foreground": "green"})
+                self._log(f"MQTT connecté — écoute '{MQTT_TOPIC_TRIGGER}'")
+            else:
+                self.root.after(0, self.lbl_mqtt.config,
+                                {"text": f"MQTT : erreur (rc={rc})", "foreground": "red"})
+                self._log(f"MQTT erreur connexion rc={rc}")
+
+        def on_message(client, userdata, msg):
+            payload = msg.payload.decode(errors="ignore")
+            # Filtrer : ne déclencher que si objet_detecte est true
+            try:
+                data = json.loads(payload)
+                if not data.get("objet_detecte", False):
+                    return
+            except (json.JSONDecodeError, AttributeError):
+                pass  # payload non-JSON → on laisse passer
+            self._log(f"MQTT trigger reçu : {payload}")
+            # Déclencher l'analyse depuis le thread principal Tkinter
+            self.root.after(0, self._trigger_analysis)
+
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        client.on_connect = on_connect
+        client.on_message = on_message
+        if MQTT_USERNAME:
+            client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+        try:
+            client.connect(MQTT_BROKER, MQTT_PORT, MQTT_KEEPALIVE)
+            client.loop_start()
+            self._mqtt_client = client
+            self._log(f"MQTT connexion à {MQTT_BROKER}:{MQTT_PORT}…")
+        except Exception as e:
+            self.lbl_mqtt.config(text=f"MQTT : indisponible", foreground="gray")
+            self._log(f"MQTT indisponible : {e}")
+
+    def _mqtt_publish_result(self, result: dict):
+        """Publie le résultat JSON sur le topic MQTT résultat."""
+        if self._mqtt_client:
+            try:
+                self._mqtt_client.publish(MQTT_TOPIC_RESULT, json.dumps(result))
+                self._log(f"MQTT résultat publié → {result['status']}")
+            except Exception as e:
+                self._log(f"MQTT publish erreur : {e}")
+
     # ── Fermeture ────────────────────────────────────────────
     def on_closing(self):
         self.is_running = False
+        if self._mqtt_client:
+            self._mqtt_client.loop_stop()
+            self._mqtt_client.disconnect()
         if self.camera:
             self.camera.release()
         self.root.destroy()

@@ -2,10 +2,10 @@
 Point d'entrée principal — choix du mode de lancement.
 
 Usage :
-    python -m v2 web       → Interface web (Flask)
-    python -m v2 tkinter   → Interface Tkinter
-    python -m v2 mqtt      → Mode MQTT (headless)
-    python -m v2 analyze   → Analyse unique (capture + JSON)
+    python -m . web       → Interface web (Flask)
+    python -m . tkinter   → Interface Tkinter
+    python -m . mqtt      → Mode MQTT (headless)
+    python -m . analyze   → Analyse unique (capture + JSON)
 """
 
 import sys
@@ -13,9 +13,9 @@ import sys
 
 def main():
     modes = {
-        "web": "v2.app_web",
-        "tkinter": "v2.app_tkinter",
-        "mqtt": "v2.app_mqtt",
+        "web": "app_web",
+        "tkinter": "app_tkinter",
+        "mqtt": "app_mqtt",
     }
 
     if len(sys.argv) < 2 or sys.argv[1] not in modes and sys.argv[1] != "analyze":
@@ -26,10 +26,10 @@ def main():
             "╠══════════════════════════════════════════════════════╣\n"
             "║                                                      ║\n"
             "║  Usage :                                             ║\n"
-            "║    python -m v2 web       Interface Web (Flask)      ║\n"
-            "║    python -m v2 tkinter   Interface Tkinter          ║\n"
-            "║    python -m v2 mqtt      Mode MQTT (headless)       ║\n"
-            "║    python -m v2 analyze   Analyse unique → JSON      ║\n"
+            "║    python __main__.py web       Web (Flask)          ║\n"
+            "║    python __main__.py tkinter   Tkinter              ║\n"
+            "║    python __main__.py mqtt      MQTT (headless)      ║\n"
+            "║    python __main__.py analyze   Analyse → JSON       ║\n"
             "║                                                      ║\n"
             "╚══════════════════════════════════════════════════════╝\n"
         )
@@ -39,8 +39,8 @@ def main():
 
     if mode == "analyze":
         # Mode one-shot : capture une frame, analyse, affiche le JSON
-        from v2.camera import Camera
-        from v2.detector import BottleDetector
+        from camera import Camera
+        from detector import BottleDetector
 
         detector = BottleDetector()
         cam = Camera()

@@ -47,12 +47,20 @@ venv.bak/
 yolo11n.pt
 yolov8n.pt
 
-# Training data and outputs
+# Archive (anciens fichiers, non pertinents pour le dépôt)
+archive/
+
+# Outputs / données générées
 output/
 analyses_bouteilles/
 analyses_feutres/
 training_data/images/
 training_data/annotations/
+
+# Images générées par l'analyse
+*.jpg
+*.jpeg
+*.png
 
 # Keep dataset.yaml but ignore training images/annotations
 !training_data/dataset.yaml

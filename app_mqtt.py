@@ -24,8 +24,8 @@ from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
-from v2.camera import Camera
-from v2.config import (
+from camera import Camera
+from config import (
     MQTT_BROKER,
     MQTT_KEEPALIVE,
     MQTT_PASSWORD,
@@ -34,7 +34,7 @@ from v2.config import (
     MQTT_TOPIC_TRIGGER,
     MQTT_USERNAME,
 )
-from v2.detector import BottleDetector
+from detector import BottleDetector
 
 
 def now_str() -> str:
@@ -102,6 +102,15 @@ class MqttBottleChecker:
 
     def _on_message(self, client, userdata, msg):
         payload = msg.payload.decode("utf-8", errors="replace").strip()
+
+        # Filtrer : ne déclencher que si objet_detecte est true
+        try:
+            data = json.loads(payload)
+            if not data.get("objet_detecte", False):
+                return
+        except (json.JSONDecodeError, AttributeError):
+            pass  # payload non-JSON → on laisse passer
+
         print(f"[{now_str()}] 📩 Reçu sur {msg.topic} → {payload!r}")
 
         if self._analyzing:

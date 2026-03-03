@@ -1,315 +1,161 @@
-# Système de Contrôle Qualité Automatisé - Flacons
+# Bottle Checker — Contrôle Qualité par Vision Artificielle
 
-## Vue d'ensemble
-Système IoT de contrôle qualité pour ligne de production de flacons, utilisant vision par ordinateur et capteurs.
-
----
-
-## Architecture du système
-
-```
-[Bouteille arrive] 
-      ↓
-[Capteur Ultrason HC-SR04] ← ESP8266
-      ↓ (détection)
-[Publication MQTT: "bouteille détectée"]
-      ↓
-[Raspberry Pi + Caméra] ← Reçoit trigger MQTT
-      ↓
-[Capture + Analyse IA]
-  - YOLO: Détection bouchon
-  - OpenCV: Niveau de liquide
-      ↓
-[Publication MQTT: Résultat JSON]
-      ↓
-[ESP8266 reçoit résultat]
-      ↓
-[Action: OK → Continuer | REJET → Alarme]
-```
+Système de contrôle qualité de bouteilles par vision artificielle, tournant sur **Raspberry Pi** avec caméra.  
+Détecte automatiquement la présence d'une bouteille, d'un bouchon et d'une étiquette via YOLO + analyse OpenCV.
 
 ---
 
-## Étapes du processus
+## Structure du projet
 
-### 1️⃣ Détection bouteille (ESP8266 + Ultrason)
-- **Capteur:** HC-SR04 (ultrason)
-- **Rôle:** Détecter l'arrivée d'une bouteille sur la ligne
-- **Seuil:** Distance < 10cm = bouteille présente
-- **Action:** Publier sur MQTT `iot/bottle/trigger`
-
-### 2️⃣ Capture image (Raspberry Pi + Caméra)
-- **Hardware:** Raspberry Pi + Picamera2 (ou webcam)
-- **Déclenchement:** Message MQTT reçu
-- **Action:** Capture photo haute résolution
-
-### 3️⃣ Analyse bouchon (YOLO)
-- **Technologie:** YOLOv11 - Deep Learning
-- **Vérifications:**
-  - ✅ Bouchon présent
-  - ✅ Bouchon bien positionné (hauteur correcte)
-  - ✅ Forme conforme
-
-### 4️⃣ Analyse niveau liquide (OpenCV)
-- **Technologie:** Traitement d'image classique
-- **Vérifications:**
-  - ✅ Niveau entre 80% et 105%
-  - ✅ Pas de débordement
-  - ✅ Remplissage suffisant
-
-### 5️⃣ Décision finale
-- **Statut:** `OK` ou `REJET`
-- **Sauvegarde:** Image horodatée dans `./output/`
-- **Publication:** Résultat JSON sur MQTT
-
-### 6️⃣ Action (ESP8266)
-- **Si OK:** LED verte + continuer ligne
-- **Si REJET:** LED rouge + alarme + arrêt éventuel
-
----
-
-## Configuration matérielle
-
-### ESP8266 (Détection)
 ```
-HC-SR04 → ESP8266
-VCC     → 5V
-GND     → GND
-TRIG    → D1 (GPIO5)
-ECHO    → D2 (GPIO4)
+Projet_IOT/
+├── __main__.py        # Point d'entrée principal
+├── config.py          # Configuration centralisée
+├── camera.py          # Abstraction caméra (Webcam / PiCamera2)
+├── detector.py        # Moteur de détection (YOLO + heuristiques OpenCV)
+├── app_web.py         # Interface Web (Flask + streaming MJPEG)
+├── app_tkinter.py     # Interface desktop Tkinter
+├── app_mqtt.py        # Mode MQTT headless (trigger → résultat)
+├── templates/
+│   └── index.html     # Page web
+├── requirements.txt   # Dépendances Python
+├── yolo11n.pt         # Modèle YOLO préentraîné
+└── archive/           # Anciens fichiers
 ```
-
-### Raspberry Pi (Analyse)
-- **Caméra:** Picamera2 (module officiel) ou webcam USB
-- **OS:** Raspberry Pi OS
-- **Connexion:** WiFi ou Ethernet
-- **Alimentation:** 5V 3A minimum
 
 ---
 
 ## Installation
 
-### Sur Raspberry Pi
 ```bash
-git clone <votre-repo>
+# Cloner le projet
+git clone https://github.com/falachabt/Projet_IOT.git
 cd Projet_IOT
 
-# Créer environnement virtuel
-python -m venv venv
-source venv/bin/activate
+# Créer un environnement virtuel (obligatoire sur Raspberry Pi OS)
+python3 -m venv venv --system-site-packages
+source venv/bin/activate          # Linux / Raspberry Pi
+# .\venv\Scripts\Activate.ps1    # Windows
 
-# Installer dépendances
+# Installer les dépendances
 pip install -r requirements.txt
-
-# Lancer mode MQTT
-python flacon_checker.py --mqtt --headless
 ```
 
-### Sur ESP8266
-1. Installer Arduino IDE
-2. Ajouter carte ESP8266 (Boards Manager)
-3. Installer librairies:
-   - `PubSubClient` (MQTT)
-   - `ESP8266WiFi`
-4. Flasher le code [esp8266-sensor.ino](esp8266-sensor.ino)
+> `--system-site-packages` permet d'hériter de `picamera2` déjà installé en système sur le Raspberry Pi.
 
 ---
 
-## Topics MQTT
+## Lancement
 
-### 🔵 Déclenchement (ESP8266 → Raspberry Pi)
-**Topic:** `iot/bottle/trigger`
+### Mode MQTT — headless (Raspberry Pi, production)
+```bash
+python __main__.py mqtt
+```
+Attend un message sur `esp8266/capteur/distance`, analyse, publie le résultat JSON sur `rapsberry/camera/resultat`.
+
+Options :
+```bash
+python __main__.py mqtt --broker 172.20.10.3 --port 1883
+python __main__.py mqtt --topic-trigger "mon/topic" --topic-result "mon/resultat"
+```
+
+### Interface Web (recommandé pour le debug / Raspberry Pi)
+```bash
+python __main__.py web
+```
+Ouvrir **http://\<ip\>:5000** — streaming temps réel + bouton d'analyse + résultats.  
+**Écoute aussi les triggers MQTT** : chaque message sur `esp8266/capteur/distance` déclenche une analyse automatique visible en direct dans le navigateur.
+
+### Interface Tkinter (desktop Windows)
+```bash
+python __main__.py tkinter
+```
+**Écoute aussi les triggers MQTT** : l'analyse se déclenche automatiquement et le résultat est publié sur `rapsberry/camera/resultat`.
+
+### Analyse unique (one-shot)
+```bash
+python __main__.py analyze
+```
+Capture une image, analyse et affiche le JSON puis quitte.
+
+---
+
+## Configuration
+
+Modifier `config.py` :
+
+| Paramètre | Description | Valeur actuelle |
+|-----------|-------------|-----------------|
+| `YOLO_MODEL_PATH` | Chemin vers le modèle YOLO | `yolo11n.pt` |
+| `YOLO_CONFIDENCE` | Seuil de confiance détection | `0.40` |
+| `CAMERA_INDEX` | Index webcam (si non PiCamera) | `0` |
+| `MQTT_BROKER` | IP du broker MQTT | `172.20.10.3` |
+| `MQTT_PORT` | Port MQTT | `1883` |
+| `MQTT_TOPIC_TRIGGER` | Topic déclenchement (ESP → Pi) | `esp8266/capteur/distance` |
+| `MQTT_TOPIC_RESULT` | Topic résultat (Pi → ESP) | `rapsberry/camera/resultat` |
+| `WEB_PORT` | Port serveur Flask | `5000` |
+
+---
+
+## Architecture MQTT
+
+```
+┌──────────────┐  esp8266/capteur/distance   ┌─────────────────┐  rapsberry/camera/resultat  ┌──────────────┐
+│   ESP8266    │ ───────────────────────────▶│  Raspberry Pi   │ ──────────────────────────▶│   ESP8266    │
+│  Capteur     │                             │  Caméra + YOLO  │                             │  LED/Moteur  │
+│  ultrason    │                             │  (app_mqtt.py)  │                             │              │
+└──────────────┘                             └────────┬────────┘                             └──────────────┘
+                                                      │
+                                               Broker MQTT
+                                             Eclipse Mosquitto
+                                              172.20.10.3:1883
+```
+
+---
+
+## Format de la réponse JSON
+
 ```json
 {
-  "action": "check",
-  "sensor": "ultrasonic",
-  "distance_cm": 5.2,
-  "timestamp": 1234567890
+  "timestamp":  "2026-03-03 14:30:00",
+  "bottle":     { "detected": true,  "confidence": 0.92 },
+  "cap":        { "detected": true,  "confidence": 0.75 },
+  "label":      { "detected": false, "confidence": 0.30 },
+  "status":     "MISSING_LABEL",
+  "image_path": "./output/20260303_143000_MISSING_LABEL.jpg",
+  "elapsed_ms": 245.3
 }
 ```
 
-### 🟢 Résultat (Raspberry Pi → ESP8266)
-**Topic:** `iot/bottle/result`
-```json
-{
-  "timestamp": "20260119_153045",
-  "status": "OK",
-  "fill_percent": 85.3,
-  "cap_ok": true,
-  "image_path": "./output/20260119_153045_OK.jpg"
-}
-```
+| Statut | Signification |
+|--------|---------------|
+| `OK` | Bouteille + bouchon + étiquette présents |
+| `MISSING_BOTTLE` | Aucune bouteille détectée |
+| `MISSING_CAP` | Bouteille sans bouchon |
+| `MISSING_LABEL` | Bouteille sans étiquette |
+| `INCOMPLETE` | Ni bouchon ni étiquette |
 
 ---
 
-## Utilisation
+## Test rapide MQTT
 
-### Mode MQTT (Production)
 ```bash
-# Raspberry Pi attend les triggers
-python flacon_checker.py --mqtt --headless
+# Terminal 1 — Lancer le checker
+python __main__.py mqtt --broker localhost
 
-# Personnaliser broker
-python flacon_checker.py --mqtt --mqtt-broker 192.168.1.100 --mqtt-port 1883
-```
+# Terminal 2 — Simuler un déclenchement
+mosquitto_pub -h localhost -t esp8266/capteur/distance -m "1"
 
-### Mode Demo (Développement)
-```bash
-# Test simple avec webcam
-python flacon_checker.py --demo
-
-# Test continu
-python flacon_checker.py --continuous --interval 2
-```
-
-### Scripts rapides (Windows)
-- [mqtt-mode.bat](mqtt-mode.bat) → Mode MQTT production
-- [voir-direct.bat](voir-direct.bat) → Test visuel simple
-- [live.bat](live.bat) → Mode continu visuel
-
----
-
-## Calibration
-
-### Ajuster les seuils dans [flacon_checker.py](flacon_checker.py):
-```python
-MIN_FILL_PERCENT = 80      # Niveau minimum acceptable
-MAX_FILL_PERCENT = 105     # Niveau maximum acceptable
-BOTTLE_HEIGHT_PX = 800     # Hauteur flacon en pixels
-CAP_HEIGHT_PX = 100        # Hauteur bouchon en pixels
-```
-
-### Tester visuellement:
-```bash
-python flacon_checker.py --demo
-```
-L'interface affiche les valeurs détectées en temps réel.
-
----
-
-## Broker MQTT
-
-### Option 1: Mosquitto (recommandé)
-```bash
-# Linux/Raspberry Pi
-sudo apt install mosquitto mosquitto-clients
-sudo systemctl start mosquitto
-
-# Windows
-# Télécharger: https://mosquitto.org/download/
-```
-
-### Option 2: Cloud MQTT
-- HiveMQ Cloud (gratuit)
-- CloudMQTT
-- AWS IoT Core
-
----
-
-## Tests
-
-### Tester MQTT localement
-```bash
-# Terminal 1: Lancer le système
-python flacon_checker.py --mqtt --headless
-
-# Terminal 2: Simuler ESP8266
-mosquitto_pub -h localhost -t iot/bottle/trigger -m '{"action":"check"}'
-
-# Terminal 3: Écouter résultats
-mosquitto_sub -h localhost -t iot/bottle/result
+# Terminal 3 — Écouter les résultats
+mosquitto_sub -h localhost -t rapsberry/camera/resultat
 ```
 
 ---
 
-## Dépendances Python
-```
-opencv-python     # Traitement d'image
-numpy            # Calculs numériques
-ultralytics      # YOLOv11
-paho-mqtt        # Communication MQTT
-picamera2        # Caméra Raspberry Pi (optionnel)
-Pillow           # Manipulation images
-```
+## Compatibilité
 
----
-
-## Structure du projet
-```
-Projet_IOT/
-├── flacon_checker.py       # Script principal
-├── requirements.txt        # Dépendances Python
-├── README.md              # Ce fichier
-├── MQTT-ARCHITECTURE.md   # Détails architecture MQTT
-├── output/                # Images capturées
-│   ├── 20260119_153045_OK.jpg
-│   └── 20260119_153102_REJET.jpg
-├── esp8266-sensor.ino     # Code ESP8266 (à créer)
-├── mqtt-mode.bat          # Launcher Windows MQTT
-├── voir-direct.bat        # Launcher test visuel
-└── live.bat               # Launcher mode continu
-```
-
----
-
-## Paramètres configurables
-
-| Argument | Description | Défaut |
-|----------|-------------|--------|
-| `--mqtt` | Mode MQTT avec déclenchement | - |
-| `--mqtt-broker` | Adresse broker MQTT | localhost |
-| `--mqtt-port` | Port broker MQTT | 1883 |
-| `--mqtt-topic-trigger` | Topic de déclenchement | iot/bottle/trigger |
-| `--mqtt-topic-result` | Topic de résultat | iot/bottle/result |
-| `--demo` | Mode démo webcam | - |
-| `--continuous` | Mode continu | - |
-| `--interval` | Intervalle entre captures (s) | 5 |
-| `--headless` | Sans affichage (prod) | - |
-| `--output-dir` | Dossier images | ./output |
-
----
-
-## Résolution des problèmes
-
-### Caméra non détectée
-```bash
-# Vérifier caméra
-libcamera-hello
-
-# Si webcam USB
-ls /dev/video*
-```
-
-### MQTT ne se connecte pas
-```bash
-# Tester broker
-mosquitto_pub -h <broker-ip> -t test -m "hello"
-
-# Vérifier firewall
-sudo ufw allow 1883
-```
-
-### Détection YOLO imprécise
-- ⚙️ Ajuster `conf` dans le code (actuellement 0.3)
-- 🎯 Entraîner modèle custom avec vos bouteilles
-- 💡 Améliorer éclairage de la ligne
-
----
-
-## Améliorations futures
-
-- [ ] Entraîner YOLO custom sur vos bouteilles spécifiques
-- [ ] Dashboard web temps réel (Flask/FastAPI)
-- [ ] Base de données pour historique (SQLite/PostgreSQL)
-- [ ] Alertes email/SMS en cas de taux de rejet élevé
-- [ ] API REST pour intégration ERP
-- [ ] Support multi-caméras
-- [ ] Détection défauts étiquette
-- [ ] Reconnaissance code-barres
-
----
-
-## Auteurs
-Projet IoT - ICAM 2026
-
-## Licence
-MIT
+| Plateforme | Caméra | Statut |
+|------------|--------|--------|
+| Raspberry Pi OS | Module caméra Pi (PiCamera2) | Recommandé |
+| Raspberry Pi OS | Webcam USB | Fonctionne |
+| Windows | Webcam | Fonctionne (Tkinter / Web) |
