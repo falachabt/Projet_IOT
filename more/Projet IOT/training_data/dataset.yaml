@@ -1,0 +1,85 @@
+# Configuration du dataset YOLO pour détection de bouchons de flacons
+# Chemin du dataset (relatif à ce fichier)
+path: .  # dataset root dir
+train: images/train  # chemin des images d'entraînement
+val: images/val      # chemin des images de validation
+
+# Classes à détecter
+# Adapte selon tes besoins !
+names:
+  0: bottle          # Bouteille/flacon
+  1: cap_closed      # Bouchon fermé
+  2: cap_open        # Bouchon ouvert/absent
+
+# Nombre de classes
+nc: 3
+
+# INSTRUCTIONS:
+# 
+# 1. COLLECTE DES IMAGES (100-200 images minimum):
+#    python collect_training_images.py
+#
+# 2. ANNOTATION DES IMAGES:
+#    Utilise un de ces outils:
+#    
+#    A) Label Studio (gratuit, local):
+#       pip install label-studio
+#       label-studio
+#       - Crée un projet "Object Detection"
+#       - Importe tes images de training_data/images/
+#       - Annote avec les labels: bottle, cap_closed, cap_open
+#       - Exporte au format YOLO
+#    
+#    B) Roboflow (gratuit, en ligne, le plus simple):
+#       - Va sur https://roboflow.com
+#       - Crée un compte gratuit
+#       - Nouveau projet > Object Detection
+#       - Upload training_data/images/
+#       - Annote avec les 3 classes
+#       - Generate > YOLOv8 > Download
+#       - Extrait le zip dans training_data/
+#    
+#    C) labelImg (gratuit, local, basique):
+#       pip install labelImg
+#       labelImg training_data/images/
+#       - Format: YOLO
+#       - Crée manuellement les .txt
+#
+# 3. STRUCTURE FINALE:
+#    training_data/
+#      ├── dataset.yaml (ce fichier)
+#      ├── images/
+#      │   ├── train/  (70-80% de tes images)
+#      │   │   ├── img001.jpg
+#      │   │   ├── img002.jpg
+#      │   │   └── ...
+#      │   └── val/    (20-30% de tes images)
+#      │       ├── img050.jpg
+#      │       └── ...
+#      └── labels/
+#          ├── train/
+#          │   ├── img001.txt
+#          │   ├── img002.txt
+#          │   └── ...
+#          └── val/
+#              ├── img050.txt
+#              └── ...
+#
+# 4. FORMAT DES LABELS (.txt):
+#    Chaque ligne = un objet:
+#    <class_id> <x_center> <y_center> <width> <height>
+#    
+#    Exemple (img001.txt):
+#    0 0.5 0.5 0.3 0.8      # bouteille au centre
+#    1 0.5 0.15 0.1 0.1     # bouchon fermé en haut
+#    
+#    Toutes les valeurs sont normalisées entre 0 et 1
+#
+# 5. LANCER L'ENTRAÎNEMENT:
+#    python train_custom_model.py
+#
+# CONSEILS:
+# - Minimum 50 images par classe (150 total)
+# - Varie les angles, positions, éclairages
+# - Annote précisément (les rectangles doivent être ajustés)
+# - Sépare bien train/val (80%/20%)

@@ -1,0 +1,241 @@
+.button-control-card {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  padding: 1.5rem;
+}
+
+.button-control-card h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.2rem;
+  color: #e2e8f0;
+}
+
+.virtual-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.virtual-button {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.virtual-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.virtual-button:not(:disabled):hover {
+  transform: scale(1.05);
+}
+
+.virtual-button:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+/* Bouton MARCHE */
+.button-marche {
+  border-color: #4ade80;
+  color: #4ade80;
+  background-color: #1e293b;
+  box-shadow: 0 4px 20px rgba(74, 222, 128, 0.3);
+}
+
+.button-marche.active {
+  background: radial-gradient(circle at center, #4ade80, #16a34a);
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 30px rgba(74, 222, 128, 0.8), 0 0 60px rgba(74, 222, 128, 0.4);
+  animation: pulse-green 1s infinite;
+}
+
+/* Bouton URGENCE */
+.button-urgence {
+  border-color: #ef4444;
+  color: #ef4444;
+  background-color: #1e293b;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+.button-urgence.active {
+  background: radial-gradient(circle at center, #ef4444, #dc2626);
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4);
+  animation: pulse-red 1s infinite;
+}
+
+/* Animations de pulsation */
+@keyframes pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(74, 222, 128, 0.8), 0 0 60px rgba(74, 222, 128, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(74, 222, 128, 1), 0 0 80px rgba(74, 222, 128, 0.6);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(239, 68, 68, 1), 0 0 80px rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* Effets de lueur */
+.button-glow {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: glow-rotate 2s linear infinite;
+}
+
+.button-glow.green {
+  background: conic-gradient(
+    transparent 0deg,
+    rgba(74, 222, 128, 0.5) 45deg,
+    transparent 90deg,
+    rgba(74, 222, 128, 0.5) 135deg,
+    transparent 180deg,
+    rgba(74, 222, 128, 0.5) 225deg,
+    transparent 270deg,
+    rgba(74, 222, 128, 0.5) 315deg,
+    transparent 360deg
+  );
+}
+
+.button-glow.red {
+  background: conic-gradient(
+    transparent 0deg,
+    rgba(239, 68, 68, 0.5) 45deg,
+    transparent 90deg,
+    rgba(239, 68, 68, 0.5) 135deg,
+    transparent 180deg,
+    rgba(239, 68, 68, 0.5) 225deg,
+    transparent 270deg,
+    rgba(239, 68, 68, 0.5) 315deg,
+    transparent 360deg
+  );
+}
+
+@keyframes glow-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Labels des boutons */
+.button-label {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+/* Badges de statut */
+.button-status {
+  min-height: 24px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+}
+
+.status-badge.active {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.status-badge.danger {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* Overlay désactivé */
+.disabled-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  color: #f59e0b;
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+}
+
+/* Informations */
+.button-info {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #334155;
+}
+
+.button-info p {
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.button-info .timestamp {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .virtual-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .virtual-button {
+    width: 100px;
+    height: 100px;
+  }
+}

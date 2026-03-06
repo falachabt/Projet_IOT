@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# Bottle Checker — Docker Compose
+# Usage : docker compose up -d
+# ─────────────────────────────────────────────────────────────
+services:
+
+  # ── Application principale ─────────────────────────────────
+  bottle-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bottle-checker
+    restart: unless-stopped
+
+    # Variables configurables (voir .env)
+    environment:
+      - MQTT_BROKER=${MQTT_BROKER:-172.20.10.3}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_USERNAME=${MQTT_USERNAME:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - CAMERA_INDEX=${CAMERA_INDEX:-0}
+      - WEB_PORT=${WEB_PORT:-5000}
+
+    ports:
+      - "${WEB_PORT:-5000}:5000"
+
+    volumes:
+      # Sorties images annotées persistées sur l'hôte
+      - ./output:/app/output
+      # Modèle YOLO depuis l'hôte (évite le re-téléchargement)
+      - ./yolo11n.pt:/app/yolo11n.pt:ro
+
+    # ── Accès caméra ──────────────────────────────────────────
+    # Webcam USB ou Pi Camera exposée en v4l2
+    # devices:
+      # - /dev/video0:/dev/video0
+      # Si plusieurs caméras :
+      # - /dev/video1:/dev/video1
+    # Pi Camera via libcamera (décommenter si /dev/video0 seul ne suffit pas) :
+    # privileged: true
+    # group_add:
+    #   - video
+
+    # Mode réseau hôte optionnel (simplifie la connexion MQTT locale)
+    # network_mode: host
+
+    # Si le broker MQTT tourne aussi en Docker, utilisez un réseau partagé :
+    # networks:
+    #   - iot-net
+
+    # Redémarrage si crash (watchdog simple)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/state"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── Broker MQTT (optionnel — si vous ne l'avez pas ailleurs) ─
+  # Décommentez ce bloc pour inclure Mosquitto dans la stack :
+  #
+  # mosquitto:
+  #   image: eclipse-mosquitto:2
+  #   container_name: mosquitto
+  #   restart: unless-stopped
+  #   ports:
+  #     - "1883:1883"
+  #     - "9001:9001"
+  #   volumes:
+  #     - ./mosquitto/config:/mosquitto/config
+  #     - ./mosquitto/data:/mosquitto/data
+  #     - ./mosquitto/log:/mosquitto/log
+  #   networks:
+  #     - iot-net
+
+# networks:
+#   iot-net:
+#     driver: bridge

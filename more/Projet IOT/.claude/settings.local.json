@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker --version:*)",
+      "Bash(npm start)",
+      "Bash(docker ps --filter \"name=mosquitto\" --format \"{{.Ports}}\")",
+      "Bash(ipconfig)",
+      "Read(//c/Users/walid/Projet IOT/**)",
+      "Bash(npx kill-port 3000)",
+      "Bash(ls -la *.md)",
+      "Bash(docker ps --filter \"name=mosquitto\" --format \"{{.Names}}\\\\t{{.Status}}\\\\t{{.Ports}}\")",
+      "Bash(curl -s http://localhost:3000/api/state)",
+      "Bash(start cmd /k \"npm start\")",
+      "Bash(pip install python-pptx pillow)",
+      "Bash(python generer_presentation.py)",
+      "Bash(python -X utf8 generer_presentation.py)",
+      "Bash(start \"c:\\\\Users\\\\walid\\\\Projet IOT\\\\Presentation_IoT_Flacons_Insuline.pptx\")",
+      "Bash(cmd.exe /c explorer \"c:\\\\Users\\\\walid\\\\Projet IOT\")",
+      "Bash(powershell.exe -Command \"Compress-Archive -Path ''c:\\\\Users\\\\walid\\\\Projet IOT\\\\*'' -DestinationPath ''c:\\\\Users\\\\walid\\\\projet-iot.zip'' -Force\")"
+    ]
+  }
+}

@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# Models - YOLO pre-trained weights (uncomment if you want to exclude them)
+# *.pt
+yolo11n.pt
+yolov8n.pt
+
+# Training data and outputs
+output/
+analyses_bouteilles/
+analyses_feutres/
+training_data/images/
+training_data/annotations/
+
+# Keep dataset.yaml but ignore training images/annotations
+!training_data/dataset.yaml
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Docker
+.dockerignore
+
+# MQTT credentials (if any)
+mqtt_credentials.json
+config.json
